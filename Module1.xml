@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
-<script:module xmlns:script="http://openoffice.org/2000/script" script:name="Module1" script:language="StarBasic">Sub EAR_autostart
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="Module1" script:language="StarBasic">&apos; https://github.com/cscode2000/EAR_OO
+Sub EAR_autostart
 oDocView = ThisComponent.getCurrentController
 oKeyHandler = createUnoListener(&quot;EAR_&quot;, &quot;com.sun.star.awt.XKeyHandler&quot;)
 oDocView.addKeyHandler(oKeyHandler)
