@@ -15,26 +15,30 @@ Einnahme-Überschussrechnung in Open Office/Libre Office
 Voraussetzung zur Nutzung ist eine vorhandene Installation von Open Office oder Libre Office.
 Download hier: https://www.openoffice.org/download bzw. https://de.libreoffice.org/download
 
-Zur Erhöhung des Komforts bei der Buchungseingabe werden Makros genutzt. Die Datei sollte daher in ein Verzeichnis kopiert werden, in welchem Makros erlaubt sind (Extras/Optionen/Sicherheit...). Die Dateiendung ggf. in "ods" ändern und in diesem Format speichern. (*)
+Zur Erhöhung des Komforts bei der Buchungseingabe werden Makros genutzt. Diese müssen daher erlaubt werden (Extras/Optionen/Sicherheit...). Die Datei sollte in ein Verzeichnis kopiert werden, in welchem Makros erlaubt sind. Die Dateiendung ggf. in "ods" ändern und in diesem Format speichern. (*)
 
 Bedienung:
-- Datum eingeben (z.B. 5.2. - das Jahr wird automatisch ergänzt)
-- nach Drücken von "Enter" öffnet sich die Liste der Konten
-- Eingabe der Kontonummer oder Bezeichnung grenzt die Liste ein
+- Datum eingeben (z.B. 15.2.  das Jahr wird nach Drücken von "Enter" automatisch passend ergänzt)
+- nach "Enter" öffnet sich die Liste der Konten
 - mit Cursor oder Maus auswählen, Klick oder Enter zum Übernehmen
+- Eingabe der Kontonummer oder Bezeichnung grenzt die Liste ein
+- um die Kontonummer manuell einzugeben, das Fenster mit Escape schließen
 - Buchungstext und Steuersatz werden automatisch ausgefüllt, können aber überschrieben werden
-- Belegnummer wird automatisch hochgezählt, Prefix "AR" = Ausgangsrechnung, "ER" = Eingangsrechnung, "GT" = Geldtransfer
+- Belegnummer wird automatisch hochgezählt
+  - Prefix "AR" = Ausgangsrechnung, "ER" = Eingangsrechnung, "GT" = Geldtransfer
+  - oben rechts werden die nächsten Belegnummern angezeigt
 - die Felder Datum und Belegnummer können mit +/- hoch-/runtergezählt werden
-- Betrag ausfüllen, nach "Enter" im Feld "Privateinlage" wird die nächste Zeile begonnen
+- Betrag eingeben, nach "Enter" im Feld "Privateinlage" wird die nächste Zeile begonnen
 
 Sonstiges:
-Um im EÜR-Formular die Einlagen (Ziffer 123) zu berechnen, eine 1 in Spalte "Privateinlage" eintragen, wenn es sich um eine Einlage handelt, z.B. eine Ausgangsrechnung von privat bezahlt wurde.
-Im Blatt "Konten" in F28 den Prozentsatz der Privatfahren von Kfz2 eintragen, falls dieser mittels Fahrtenbuch ermittelt wurde.
-Kfz1 wird zu 100% betrieblich genutzt oder nach 1%-Regelung versteuert.
-Im Blatt "Steuererkl." den Hebesatz der Gemeinde eintragen, um die Gewerbesteuer zu berechnen.
-Für den Transfer zu Hibiscus und Elster muß das Makro EAR_UStVA angepaßt werden. (persönliche Daten, Dateipfade)
-Das Blatt ESt dient dazu, Kapitalerträge mehrerer Banken zu addieren und weitere Daten griffbereit zu haben.
+- Um im EÜR-Formular die Einlagen (Ziffer 123) zu berechnen, eine 1 in Spalte "Privateinlage" eintragen, wenn es sich um eine Einlage handelt, z.B. eine Ausgangsrechnung von privat bezahlt wurde.
+- Im Blatt "Konten" in F28 den Prozentsatz der Privatfahren von Kfz2 eintragen, falls dieser mittels Fahrtenbuch ermittelt wurde.
+  - Kfz1 wird zu 100% betrieblich genutzt oder nach 1%-Regelung versteuert.
+- Im Blatt "Steuererkl." den Hebesatz der Gemeinde eintragen, um die Gewerbesteuer zu berechnen.
+- Für den Transfer zu Hibiscus und Elster muß das Makro EAR_UStVA angepaßt werden. (persönliche Daten, Dateipfade)
+- Beim UStVA-Export wird der Monat verwendet, wo sich der Cursor befindet.
+- Nicht benötigte Konten können ausgeblendet werden, um die Liste übersichtlicher zu machen. (Rechtsklick auf Zeilennummer)
+- Das Blatt ESt dient dazu, Kapitalerträge mehrerer Banken zu addieren und weitere Daten griffbereit zu haben.
 
-Es handelt sich um eine für den eigene Zwecke erstellte Anwendung, die nur wenig für Einsatz durch andere modifiziert wurde, daher mit reduziertem Kontenrahmen, ohne Zellschutz, schicke Konfigurationsdialoge o.ä.
-
+Es handelt sich um eine für eigene Zwecke erstellte Anwendung, die nur wenig für Einsatz durch andere modifiziert wurde, daher mit reduziertem Kontenrahmen, ohne Zellschutz, schicke Konfigurationsdialoge o.ä. Gerne helfe ich bei individueller Anpassung.
 (*) Makros und Dialog sind zur Vereinfachung im Tabellendokument integriert. Selbst habe ich alles in eine eigene Bibliothek ausgelagert. Zur Kompatibilität mit Open Office 1.x liegt die Datei als ".sxc" vor, was von allen Office-Versionen gelesen werden kann.
