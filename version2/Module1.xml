@@ -1,0 +1,618 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="Module1" script:language="StarBasic">&apos; https://github.com/cscode2000/EAR_OO
+Sub EAR_autostart
+oDocView = ThisComponent.getCurrentController
+oKeyHandler = createUnoListener(&quot;EAR_&quot;, &quot;com.sun.star.awt.XKeyHandler&quot;)
+oDocView.addKeyHandler(oKeyHandler)
+vFrame = StarDesktop.getCurrentFrame
+vWindow = vFrame.getContainerWindow
+&apos;vWindow.setPosSize(100,25,975,1145,com.sun.star.awt.PosSize.POSSIZE)
+gss = createUnoService(&quot;com.sun.star.sheet.GlobalSheetSettings&quot;)
+gss.moveDirection = 1
+
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+dim args1(0) as new com.sun.star.beans.PropertyValue
+args1(0).Name = &quot;DesignerDialog&quot;
+args1(0).Value = false
+dispatcher.executeDispatch(vFrame, &quot;.uno:DesignerDialog&quot;, &quot;&quot;, 0, args1())  &apos;*****  Löschen für GitHub ********
+args1(0).Name = &quot;Navigator&quot;
+dispatcher.executeDispatch(vFrame, &quot;.uno:Navigator&quot;, &quot;&quot;, 0, args1()) &apos; Navigator ausblenden
+
+DialogLibraries.LoadLibrary(&quot;Standard&quot;)
+End Sub
+
+sub EAR_UStVA
+&apos; incl. Änderung ab Juli 2020 16%USt
+Doc= thisComponent
+Sheet1 = Doc.Sheets.getByName(&quot;UStVA&quot;)
+Jahr = Sheet1.getCellRangeByName(&quot;A1&quot;)
+Zelle=Doc.getCurrentSelection()
+Def_MeinName=&quot;Mein Name&quot;
+Def_MeinIBAN=&quot;DE0815&quot;
+Def_MeinBIC=&quot;BICXXX&quot;
+Def_Steuernr=&quot; 123456789&quot;
+Def_SteuernrElster=&quot;0987654321&quot;
+Def_FA_Name=&quot;Finanzamt xy&quot;
+Def_FA_IBAN=&quot;DE1508&quot;
+Def_FA_BIC=&quot;BICYYY&quot;
+if (Zelle.rangeAddress.startRow &lt; Zelle.rangeAddress.EndRow) then msgboxtext = &quot; und folgende&quot;
+weiter = MsgBox (&quot;Die Daten für Monat &quot; + Zelle.rangeAddress.startRow + msgboxtext + &quot; werden exportiert und der&quot; + chr(13) + &quot;angemeldete Betrag in Spalte J (Dezember: L) eingetragen.&quot; + chr(13) +_
+&quot;Daraus wird die Sondervorauszahlung für das nächste Jahr sowie das Vorauszahlungssoll für die USt.-Erkl. berechnet.&quot;,1,&quot;UStVA Export für Elster.de + SEPA&quot;)
+if weiter=1 then
+  For i = Zelle.rangeAddress.startRow to Zelle.rangeAddress.EndRow
+    Monat = trim(str(i))
+    if i&lt;10 then Monat = &quot;0&quot; + Monat
+    umsatz = Sheet1.getCellRangeByName(&quot;B&quot; + trim(str(1+Monat))).value
+    umsatz2 = Sheet1.getCellRangeByName(&quot;E&quot; + trim(str(1+Monat))).value
+    Eigenv = Sheet1.getCellRangeByName(&quot;B&quot; + trim(str(1+13))).value
+    Eigenv2 = Sheet1.getCellRangeByName(&quot;E&quot; + trim(str(1+13))).value
+    Eigenv2Steuer = Sheet1.getCellRangeByName(&quot;G&quot; + trim(str(1+13))).value
+    Vorsteuer = Sheet1.getCellRangeByName(&quot;H&quot; + trim(str(1+Monat))).value
+    Vorsteuer_str = Format(Vorsteuer, &quot;0.00&quot;) &apos; Dezimal-Komma wg. dt. Gebietsschema
+    Mid(Vorsteuer_str, len(Vorsteuer_str)-2, 1, &quot;.&quot;)
+    anzumelden = Sheet1.getCellRangeByName(&quot;I&quot; + trim(str(1+Monat))).value
+    angemeldet = Sheet1.getCellRangeByName(&quot;J&quot; + trim(str(1+Monat)))
+    tmpFile = Freefile
+    Open &quot;C:\Elster\!ustva&quot; + monat + &quot;.xml&quot; For Output As tmpFile
+    Print #tmpFile, &quot;&lt;?xml version=&quot; + Chr(34) + &quot;1.0&quot;  + Chr(34) + &quot; encoding=&quot;  + Chr(34) + &quot;ISO-8859-15&quot; + Chr(34) + &quot; standalone=&quot; + Chr(34) + &quot;no&quot; + Chr(34) + &quot;?&gt;&quot; +_
+    &quot;&lt;Anmeldungssteuern xmlns=&quot; + Chr(34) + &quot;http://www.elster.de/2002/XMLSchema&quot; + Chr(34) + &quot; art=&quot; + Chr(34) + &quot;UStVA&quot; + Chr(34) + &quot; version=&quot; + Chr(34) + &quot;201901&quot; +_
+    Chr(34) + &quot;&gt;&quot;
+    Print #tmpFile, &quot;&lt;Steuerfall&gt;&lt;Umsatzsteuervoranmeldung&gt;&lt;Steuernummer&gt;&quot; + Def_SteuernrElster + &quot;&lt;/Steuernummer&gt;&lt;Jahr&gt;&quot; + Jahr.string + &quot;&lt;/Jahr&gt;&quot;
+    Print #tmpFile,&quot;&lt;Zeitraum&gt;&quot; + Monat + &quot;&lt;/Zeitraum&gt;&lt;Kz66&gt;&quot; + Vorsteuer_str + &quot;&lt;/Kz66&gt;&quot;
+    if monat=&quot;12&quot; then                   &apos; #### Dezember: Eigenverbrauch hinzurechnen, SoVZ abziehen
+      anzumelden = Sheet1.getCellRangeByName(&quot;K&quot; + trim(str(1+Monat))).value
+      angemeldet = Sheet1.getCellRangeByName(&quot;L&quot; + trim(str(1+Monat)))
+      umsatz = umsatz+Eigenv
+      umsatz2 = umsatz2+Eigenv2
+      SoZ = Sheet1.getCellRangeByName(&quot;J&quot; + trim(str(1+12))).value &apos; SoVZ
+      SoZ_str = Format(SoZ, &quot;0.00&quot;)
+      Print #tmpFile,&quot;&lt;Kz39&gt;&quot; + SoZ_str + &quot;&lt;/Kz39&gt;&quot;
+    end if
+    angemeldet.value=anzumelden
+    Print #tmpFile,&quot;&lt;Kz81&gt;&quot; + trim(str(int(umsatz))) + &quot;&lt;/Kz81&gt;&quot;
+    if umsatz2&gt;0 then                    &apos; #### Umsätze mit 2. (Sonder-)Steuersatz
+      Steuer2 = Sheet1.getCellRangeByName(&quot;G&quot; + trim(str(1+Monat))).value
+      if monat=&quot;12&quot; then Steuer2 = Steuer2+Eigenv2Steuer
+      Print #tmpFile,&quot;&lt;Kz35&gt;&quot; + trim(str(fix(umsatz2))) + &quot;&lt;/Kz35&gt;&lt;Kz36&gt;&quot; + trim(str(Steuer2)) + &quot;&lt;/Kz36&gt;&quot;
+    end if
+    Print #tmpFile,&quot;&lt;/Umsatzsteuervoranmeldung&gt;&lt;/Steuerfall&gt;&lt;/Anmeldungssteuern&gt;&quot;
+    Close #tmpFile
+
+    anzumelden_str = Format(anzumelden, &quot;0.00&quot;) &apos; leider Dezimal-Komma wg. dt. Gebietsschema
+    Mid(anzumelden_str, len(anzumelden_str)-2, 1, &quot;.&quot;)
+    faellig_j = Jahr.string
+    faellig_m = 2+Monat
+    if faellig_m&gt;12 then
+      faellig_m = faellig_m-12
+      faellig_j = 1+faellig_j
+    end if
+    if faellig_m&lt;10 then faellig_m = &quot;0&quot; + faellig_m  &apos; Integer &lt;-&gt; String???
+    SEPAtext = SEPAtext + &quot;&lt;PmtInf&gt;&lt;ReqdColltnDt&gt;&quot; + faellig_j + &quot;-&quot; + faellig_m + &quot;-01&lt;/ReqdColltnDt&gt;&quot; +_
+    &quot;&lt;DbtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + Def_MeinIBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/DbtrAcct&gt;&lt;DbtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + Def_MeinBIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/DbtrAgt&gt;&lt;CdtTrfTxInf&gt;&quot; +_
+    &quot;&lt;Amt&gt;&lt;InstdAmt Ccy=&quot; + Chr(34) + &quot;EUR&quot; + Chr(34) + &quot;&gt;&quot; + anzumelden_str + &quot;&lt;/InstdAmt&gt;&quot; +_
+    &quot;&lt;/Amt&gt;&lt;CdtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + FA_BIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/CdtrAgt&gt;&lt;Cdtr&gt;&lt;Nm&gt;&quot; + FA_Name + &quot;&lt;/Nm&gt;&lt;/Cdtr&gt;&lt;CdtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + FA_IBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/CdtrAcct&gt;&lt;RmtInf&gt;&quot; +_
+    &quot;&lt;Ustrd&gt;UST.&quot; + Monat + &quot;/&quot; + Jahr.string + Def_Steuernr + &quot;&lt;/Ustrd&gt;&lt;/RmtInf&gt;&lt;/CdtTrfTxInf&gt;&lt;/PmtInf&gt;&quot;
+    if monat=&quot;12&quot; then &apos; SoVZ-Überweisung
+      anzumelden = Sheet1.getCellRangeByName(&quot;I25&quot;).value
+      anzumelden_str = Format(anzumelden, &quot;0.00&quot;)
+      Mid(anzumelden_str, len(anzumelden_str)-2, 1, &quot;.&quot;)
+      SEPAtext = SEPAtext + &quot;&lt;PmtInf&gt;&lt;ReqdExctnDt&gt;&quot; + faellig_j + &quot;-02-01&lt;/ReqdExctnDt&gt;&quot; +_
+      &quot;&lt;DbtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + Def_MeinIBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/DbtrAcct&gt;&lt;DbtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + Def_MeinBIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/DbtrAgt&gt;&lt;CdtTrfTxInf&gt;&quot; +_
+      &quot;&lt;Amt&gt;&lt;InstdAmt Ccy=&quot; + Chr(34) + &quot;EUR&quot; + Chr(34) + &quot;&gt;&quot; + anzumelden_str + &quot;&lt;/InstdAmt&gt;&quot; +_
+      &quot;&lt;/Amt&gt;&lt;CdtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + FA_BIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/CdtrAgt&gt;&lt;Cdtr&gt;&lt;Nm&gt;&quot; + FA_Name + &quot;&lt;/Nm&gt;&lt;/Cdtr&gt;&lt;CdtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + FA_IBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/CdtrAcct&gt;&lt;RmtInf&gt;&quot; +_
+      &quot;&lt;Ustrd&gt;UST. SoVZ &quot; + faellig_j + Def_Steuernr + &quot;&lt;/Ustrd&gt;&lt;/RmtInf&gt;&lt;/CdtTrfTxInf&gt;&lt;/PmtInf&gt;&quot;
+    end if
+  next i
+  tmpFile = Freefile
+  Open &quot;C:\HBCI\import_&quot; + monat + &quot;.xml&quot; For Output As tmpFile
+  Print #tmpFile, &quot;&lt;Document xmlns=&quot; + Chr(34) + &quot;urn:iso:std:iso:20022:tech:xsd:pain.001.001.03&quot; + Chr(34) + &quot;&gt;&lt;CstmrCdtTrfInitn&gt;&lt;GrpHdr&gt;&lt;InitgPty&gt;&lt;Nm&gt;&quot; + Def_MeinName + &quot;&lt;/Nm&gt;&lt;/InitgPty&gt;&lt;/GrpHdr&gt;&quot; + SEPAtext + &quot;&lt;/CstmrCdtTrfInitn&gt;&lt;/Document&gt;&quot;
+  Close #tmpFile
+  if (Zelle.rangeAddress.startRow &lt; Zelle.rangeAddress.EndRow) then msgboxtext = &quot;bis&quot; else msgboxtext = &quot;für&quot;
+  if fileexists(&quot;C:\Elster\!ustva&quot; + monat + &quot;.xml&quot;) then
+    MsgBox (&quot;UStVA-Daten &quot; + msgboxtext + &quot; Monat &quot; + Monat + &quot; wurden exportiert.&quot; + Chr(13) + Chr(13) + &quot;Nach Absenden in &apos;Mein Elster&apos; PDF speichern.&quot;,0,&quot;Export für Elster.de&quot;)
+  else
+    MsgBox (&quot;UStVA-Daten &quot; + msgboxtext + &quot; Monat &quot; + Monat + &quot; wurden NICHT exportiert.&quot;,16,&quot;Fehler&quot;)
+  end if
+end if
+end sub
+
+Global EAR_Ext
+Global EAR_Doc
+
+sub EAR_Import
+Path=createunoservice(&quot;com.sun.star.util.PathSettings&quot;)
+exportfile = path.work + &quot;/EXPORT.CSV&quot;
+if not fileexists(exportfile) then 
+  ans=MsgBox (&quot;Die Import-Datei &quot; + exportfile + &quot; ist nicht vorhanden!&quot;,,&quot;EAR-Import&quot;)
+  &apos;1: OK 2:Abbrechen 4:Wiederholen 5:Ignorieren 6:Ja 7:Nein
+  exit sub
+endif
+EAR_Ext = &quot;.sxc&quot;
+Dim args(2) as New com.sun.star.beans.PropertyValue
+sUrl=converttourl(exportfile)
+args(0).Name = &quot;FilterName&quot;
+args(0).Value = &quot;scalc: Text - txt - csv (StarCalc)&quot;
+args(1).Name = &quot;FilterOptions&quot;
+args(1).Value = &quot;59&quot;
+args(2).Name = &quot;Hidden&quot;
+args(2).Value = TRUE
+DocCSV = StarDesktop.loadComponentFromURL(sUrl,&quot;_blank&quot;, 0, args())
+SheetCSV = DocCSV.Sheets.getByName(&quot;Tabelle1&quot;)
+Jahr = mid(SheetCSV.getCellRangeByName(&quot;A1&quot;).string,7,4)
+&apos; monat = val(mid(SheetCSV.getCellRangeByName(&quot;A&quot;+trim(str(zeilen))).string,4,2))
+zeilen = SheetCSV.getCellRangeByPosition(4,0,4,999).computeFunction(com.sun.star.sheet.GeneralFunction.COUNT)
+EAR_OpenYearOrCreate(Jahr,zeilen)
+
+Sheet1 = EAR_Doc.Sheets.getByName(&quot;Buch&quot;)
+Quelle=SheetCSV.getCellRangeByPosition(0,0,6,zeilen)
+Ziel = Sheet1.getCellRangeByPosition(0,1,6,zeilen+1)
+Ziel.setDataArray( Quelle.getDataArray() )
+i=0
+Sheet4 = EAR_Doc.Sheets.getByName(&quot;Anlagen&quot;)
+Do
+  mycell = SheetCSV.getCellByPosition(1,i)
+  if mycell.value&gt;0 and mycell.value&lt;1000 and mycell.value&lt;&gt;670 then &apos; ins Anlageverzeichnis eintragen
+    zeile = Sheet4.getCellRangeByPosition(0,0,0,199).computeFunction(com.sun.star.sheet.GeneralFunction.COUNT)
+    Sheet4.getCellByPosition(0,zeile).string = SheetCSV.getCellByPosition(2,i).string
+    Sheet4.getCellByPosition(1,zeile).value = mycell.value
+    Sheet4.getCellByPosition(2,zeile).value = SheetCSV.getCellByPosition(0,i).value
+    Sheet4.getCellByPosition(4,zeile).value = SheetCSV.getCellByPosition(7,i).value
+    Sheet4.getCellByPosition(5,zeile).value = SheetCSV.getCellByPosition(7,i).value
+  endif
+  i=i+1
+Loop While mycell.value &gt; 0
+DocCSV.Modified = False
+DocCSV.close(true)
+EAR_sort(&quot;MUDU&quot;)
+ans=msgbox(&quot;Datenimport fertig. Soll die Datei gespeichert werden?&quot;,4,&quot;EAR-OO&quot;)
+&apos;1: OK 2:Abbrechen 4:Wiederholen 5:Ignorieren 6:Ja 7:Nein
+if ans=6 then
+  EAR_Doc.store()
+endif
+end sub
+
+sub EAR_NextYear
+Doc= thisComponent
+Sheet1 = Doc.Sheets.getByName(&quot;Buch&quot;)
+&apos;Jahr = Sheet1.getCellRangeByName(&quot;A1&quot;).value+1
+Jahr = right(str(val(Sheet1.getCellRangeByName(&quot;A1&quot;).string)+1),4)
+i=2
+while instr(i,Doc.getUrl(),&quot;.&quot;)&gt;2
+  i=i+1
+wend
+EAR_Ext = &quot;.&quot; &amp; mid(Doc.getUrl(),i) &apos; Endung sxc oder ods
+EAR_OpenYearOrCreate(Jahr,0)
+EAR_Doc.store()
+msgbox(&quot;Jahreswechsel fertig.&quot;,,&quot;EAR-OO&quot;)
+end sub
+
+sub EAR_OpenYearOrCreate(Jahr,zeilen)
+Dim Param()
+Path=createunoservice(&quot;com.sun.star.util.PathSettings&quot;).work &amp; &quot;/&quot;
+sxcdatei = &quot;ear&quot; + jahr + EAR_Ext
+ans=0
+url=converttourl(path + sxcdatei)
+if fileexists(url) and zeilen=0 then 
+  ans=msgbox(&quot;Die Datei für &quot; &amp; jahr &amp; &quot; existiert bereits. Überschreiben?&quot;,4,&quot;Achtung&quot;)
+endif
+if not fileexists(url) or ans=6 then  &apos; neues Jahr anlegen
+  vorjahr = trim(str(val(jahr)-1))
+  sxcdateiVj = &quot;ear&quot; + vorjahr + EAR_Ext
+  urlVj=converttourl(path + sxcdateiVj)
+
+  oComponents = StarDesktop.getComponents() &apos; schon geöffnet?
+  oDocs = oComponents.createEnumeration()
+  Do While oDocs.hasMoreElements()
+    DocVj = oDocs.nextElement()
+    if instr(DocVj.dbg_supportedinterfaces,&quot;SpreadsheetDocument&quot;) Then dateiname=DocVj.geturl()
+    if instr(dateiname,sxcDateiVj) then 
+      DocVj_aktiv = 1
+      Exit Do
+    endif
+  Loop
+  if DocVj_aktiv&lt;&gt;1 then
+    DocVj = StarDesktop.loadComponentFromURL(UrlVj, &quot;_blank&quot;, 0, Param()) &apos; hidden-öffnen fehlerhaft, hebt Fixierung Zeile 1 auf...
+    DocVj_aktiv=2
+  endif
+  DocVj.storeToUrl(Url,Param())   &apos; als aktuelles Jahr speichern
+  aktiv=1
+  wait 2000
+  EAR_Doc = StarDesktop.loadComponentFromURL(Url, &quot;_blank&quot;, 0, Param())
+  Flags = com.sun.star.sheet.CellFlags.VALUE
+  Sheet2 = EAR_Doc.Sheets.getByName(&quot;UStVA&quot;)   &apos; Vj.-Werte löschen
+  Ziel = Sheet2.getCellRangeByName(&quot;D16&quot;)
+  ziel.clearcontents(flags)
+  Ziel = Sheet2.getCellRangeByName(&quot;L13&quot;)
+  ziel.clearcontents(flags)
+  Ziel = Sheet2.getCellRangeByName(&quot;J2:J12&quot;)
+  ziel.clearcontents(flags)
+
+  Sheet4Vj = DocVj.Sheets.getByName(&quot;AVEUR&quot;)   &apos; Anlagen übernehmen
+  Sheet4 = EAR_Doc.Sheets.getByName(&quot;AVEUR&quot;)
+
+  Quelle=Sheet4Vj.getCellRangeByPosition(4,13,4,13) &apos; E14
+  Ziel = Sheet4.getCellRangeByPosition(2,14,2,14) &apos; C15
+  Ziel.setDataArray( Quelle.getDataArray() )
+
+  Quelle=Sheet4Vj.getCellRangeByPosition(2,14,2,16) &apos; C15:C17
+  Ziel = Sheet4.getCellRangeByPosition(2,15,2,17) &apos; C16:C18
+  Ziel.setDataArray( Quelle.getDataArray() )
+
+  Quelle=Sheet4Vj.getCellRangeByPosition(8,13,8,16) &apos; I14:I17
+  Ziel = Sheet4.getCellRangeByPosition(3,14,3,17) &apos; D15:D18
+  Ziel.setDataArray( Quelle.getDataArray() )
+
+  Sheet5 = EAR_Doc.Sheets.getByName(&quot;Anlagen&quot;)
+  zeilenAV = Sheet5.getCellRangeByPosition(0,1,0,199).computeFunction(com.sun.star.sheet.GeneralFunction.COUNT)
+  Quelle=Sheet5.getCellRangeByPosition(0,199,12,199)
+  Do While zeilenAV&gt;0      &apos;  abgegangene Anlagen löschen
+    if Sheet5.getCellByPosition(9,zeilenAV).string &gt; &quot; &quot; then
+      Ziel = Sheet5.getCellRangeByPosition(0,zeilenAV,12,zeilenAV)
+      Ziel.setDataArray( Quelle.getDataArray() )
+    endif    
+    zeilenAV = zeilenAV-1
+  loop
+  ear_sortAV(&quot;CUBU&quot;) &apos; Sortieren statt Leerzeilen löschen!
+  
+  zeilenAV = Sheet5.getCellRangeByPosition(0,1,0,199).computeFunction(com.sun.star.sheet.GeneralFunction.COUNT)
+  Quelle=Sheet5.getCellRangeByPosition(8,1,8,zeilenAV) &apos; Buchwert J.ende -&gt; J.anfang
+  Ziel = Sheet5.getCellRangeByPosition(5,1,5,zeilenAV)
+  Ziel.setDataArray( Quelle.getDataArray() )
+
+  Quelle=Sheet5.getCellRangeByPosition(6,199,7,199)
+  Do While zeilenAV&gt;0       &apos;  jährl. Abschreibung auf Standard
+    Ziel = Sheet5.getCellRangeByPosition(6,zeilenAV,7,zeilenAV)
+    Ziel.setDataArray( Quelle.getDataArray() )
+    zeilenAV = zeilenAV-1
+  loop
+  
+  if DocVj_aktiv&lt;&gt;1 then 
+    DocVj.Modified = False
+    DocVj.close(true)
+  endif
+else &apos; File existiert bereits. Öffnen für Import oder wenn &quot;Überschreiben=Nein&quot;
+  oComponents = StarDesktop.getComponents() &apos; schon geöffnet?
+  oDocs = oComponents.createEnumeration()
+  Do While oDocs.hasMoreElements()
+    EAR_Doc = oDocs.nextElement()
+    if instr(EAR_Doc.dbg_supportedinterfaces,&quot;SpreadsheetDocument&quot;) Then dateiname=EAR_Doc.geturl()
+    if instr(dateiname,sxcDatei) then 
+      aktiv = 1
+      Exit Do
+    endif
+  Loop
+  if aktiv&lt;&gt;1 then EAR_Doc = StarDesktop.loadComponentFromURL(Url, &quot;_blank&quot;, 0, Param())
+endif
+
+EAR_Doc.lockControllers              &apos; zuerst Buchungen bereinigen (eigentl. nur im Januar nötig)
+Sheet1 = EAR_Doc.Sheets.getByName(&quot;Buch&quot;)
+Sheet1.getCellByPosition(0,0).value=datevalue(&quot;1.1.&quot; &amp; jahr)
+QuelleRange = Sheet1.getCellRangeByName( &quot;A999:M999&quot; )
+Quelle = QuelleRange.getRangeAddress
+if vorjahr&gt;0 then
+  for zeile = zeilen+2 to 999             &apos; freie Zeilen mit Standardzeile überschreiben, sonst per Dispatcher o. CurrentController.getTransferable/insertTransferable(o)??
+    ZielRange = Sheet1.getCellRangeByName(&quot;A&quot; + trim(str(zeile)))
+    Ziel = ZielRange.getCellAddress
+    Sheet1.copyRange(Ziel,Quelle)
+  next
+endif
+EAR_Doc.unlockControllers
+
+myView = EAR_Doc.CurrentController                        &apos; 1.Blatt, 1.leere Zeile aktivieren
+myView.setActiveSheet(Sheet1)
+if zeilen=0 then
+  zeilen = Sheet1.getCellRangeByPosition(0,0,0,999).computeFunction(com.sun.star.sheet.GeneralFunction.COUNT)
+else
+  zeilen=zeilen+1
+endif
+mycell = Sheet1.getCellByPosition(0,zeilen)
+myView.Select(mycell)
+oRanges = EAR_Doc.createInstance(&quot;com.sun.star.sheet.SheetCellRanges&quot;)
+myView.Select(oRanges) &apos; Markierung entfernen
+end sub
+
+sub EAR_ButtonSort
+ear_sort() &apos; Workaround, sonst ismissing immer false?!
+end sub
+sub EAR_ButtonSortAV
+ear_sortAV()
+end sub
+
+Sub EAR_sort(optional orderstring)
+order=&quot;MUDU&quot;
+if ismissing(orderstring) then
+  order=InputBox (&quot;Sortierung nach Spalte + Up/Dn - 2 Kriterien angeben (= 4 Buchstaben)!&quot; +chr$(13)+_
+  &quot;Beispiel Konto aufsteigend+Betrag absteigend: BUED (B=Konto E=Betrag)&quot; +chr$(13)+ &quot;Für Vorgabe &quot;&quot;&quot; + order + &quot;&quot;&quot;: OK klicken. (Spalte M=Monat)&quot;, &quot;Buchungen sortieren&quot;, order)
+  if order=&quot;&quot; then exit sub
+endif
+doc=thiscomponent
+Sheet1 = Doc.Sheets.getByName(&quot;Buch&quot;)
+zeilen = Sheet1.getCellRangeByPosition(1,1,1,999).computeFunction(com.sun.star.sheet.GeneralFunction.COUNT)
+for i = 1 to 999
+  if Sheet1.getCellByPosition(2,i).formula=&quot;&quot; then j=j+1
+next i
+zeilen=zeilen+j &apos; compute zählt geleerte Zeilen nicht mit!
+&apos; zählt Formeln mit: Cursor = Sheet1.createCursor : Cursor.GotoEndOfUsedArea(False) : zeilen = Cursor.getRangeAddress().endRow
+Ziel = Sheet1.getCellRangeByPosition(0,1,12,zeilen) &apos; Sortieren nach Monat + Beleg
+Dim SortProps(3) As new com.sun.star.beans.PropertyValue
+Dim SortFeld(1) As new com.sun.star.table.TableSortField
+SortFeld(0).Field = asc(ucase(mid(order,1,1)))-65
+SortFeld(0).IsAscending = True
+if ucase(mid(order,2,1))=&quot;D&quot; then SortFeld(0).IsAscending = False
+SortFeld(0).FieldType = com.sun.star.util.SortFieldType.AUTOMATIC
+SortFeld(1).Field = asc(ucase(mid(order,3,1)))-65
+SortFeld(1).IsAscending = True
+if ucase(mid(order,4,1))=&quot;D&quot; then SortFeld(1).IsAscending = False
+SortFeld(1).FieldType = com.sun.star.util.SortFieldType.AUTOMATIC
+SortProps(0).Name = &quot;SortFields&quot;
+SortProps(0).Value = SortFeld()
+SortProps(1).Name = &quot;IsSortColumns&quot;
+SortProps(1).Value = False
+SortProps(2).Name = &quot;ContainsHeader&quot;
+SortProps(2).Value = false
+SortProps(3).Name = &quot;BindFormatsToContent&quot;
+SortProps(3).Value = false
+Ziel.Sort(SortProps())
+end sub
+
+Sub EAR_sortAV(optional orderstring)
+order=&quot;CUBU&quot;
+if ismissing(orderstring) then
+  order=InputBox (&quot;Sortierung nach Spalte + Up/Dn - 2 Kriterien angeben (= 4 Buchstaben)!&quot; +chr$(13)+_
+  &quot;Beispiel Konto aufsteigend+Betrag absteigend: BUFD (B=Konto F=Betrag)&quot; +chr$(13)+ &quot;Für Vorgabe &quot;&quot;&quot; + order + &quot;&quot;&quot;: OK klicken.&quot;, &quot;Anlagen sortieren&quot;, order)
+  if order=&quot;&quot; then exit sub
+endif
+doc=thiscomponent
+Sheet1 = Doc.Sheets.getByName(&quot;Anlagen&quot;)
+zeilen = Sheet1.getCellRangeByPosition(0,1,0,199).computeFunction(com.sun.star.sheet.GeneralFunction.COUNT)
+for i = 1 to 199
+  if Sheet1.getCellByPosition(1,i).formula=&quot;&quot; then j=j+1
+next i
+zeilen=zeilen+j &apos; compute zählt geleerte Zeilen nicht mit!
+Ziel = Sheet1.getCellRangeByPosition(0,1,12,zeilen) &apos; Sortieren nach Monat + Beleg
+Dim SortProps(3) As new com.sun.star.beans.PropertyValue
+Dim SortFeld(1) As new com.sun.star.table.TableSortField
+SortFeld(0).Field = asc(ucase(mid(order,1,1)))-65
+SortFeld(0).IsAscending = True
+if ucase(mid(order,2,1))=&quot;D&quot; then SortFeld(0).IsAscending = False
+SortFeld(0).FieldType = com.sun.star.util.SortFieldType.AUTOMATIC
+SortFeld(1).Field = asc(ucase(mid(order,3,1)))-65
+SortFeld(1).IsAscending = True
+if ucase(mid(order,4,1))=&quot;D&quot; then SortFeld(1).IsAscending = False
+SortFeld(1).FieldType = com.sun.star.util.SortFieldType.AUTOMATIC
+SortProps(0).Name = &quot;SortFields&quot;
+SortProps(0).Value = SortFeld()
+SortProps(1).Name = &quot;IsSortColumns&quot;
+SortProps(1).Value = False
+SortProps(2).Name = &quot;ContainsHeader&quot;
+SortProps(2).Value = false
+SortProps(3).Name = &quot;BindFormatsToContent&quot;
+SortProps(3).Value = false
+Ziel.Sort(SortProps())
+end sub
+
+&apos;Global oListener
+&apos;Global oDocView 
+&apos;Global oKeyHandler
+Global EAR_Dlg &apos;  names of control elements are case-sensitive
+Global EAR_Dlg_suchstring
+
+Function EAR_KeyPressed(oEvt) As Boolean
+EAR_KeyPressed = false
+doc=thiscomponent
+Sheet1 = Doc.CurrentController.activesheet
+if Sheet1.name=&quot;Buch&quot; then                    &apos; + und - zählen Datum/Belegnr hoch/runter
+  Range=Doc.getCurrentSelection.rangeAddress
+  if Range.startColumn=Range.endColumn then   &apos; sonst gelegentl. Fehler
+    if oEvt.KeyChar = &quot;+&quot; or oEvt.KeyChar = &quot;-&quot; then 
+      diff=(asc(oEvt.KeyChar)-44)*-1 
+      if Range.startColumn=0 then 
+        EAR_KeyPressed = true
+        datum=Sheet1.getCellByPosition(0,Range.startRow)
+        datum.value=datum.value+diff
+      endif
+      if Range.startColumn=3 then
+        EAR_KeyPressed = true
+        beleg=Sheet1.getCellByPosition(3,Range.startRow)
+        kat=left(beleg.string,2)
+        if kat=&quot;AR&quot; or kat=&quot;ER&quot; or kat=&quot;GT&quot; then
+          nr=val(right(beleg.string,3))+diff
+          if nr=0 then nr=1
+          beleg.string=kat + right(&quot;000&quot; &amp; trim(str(nr)),3)
+        endif
+      endif
+    endif
+  endif
+endif
+End Function
+
+Function EAR_KeyReleased(oEvt) As Boolean
+EAR_KeyReleased = False     &apos; Col gilt hier immer für Spalte davor!
+doc=thiscomponent
+myView = Doc.CurrentController
+Sheet1 = myView.activesheet
+if oEvt.KeyCode = com.sun.star.awt.Key.RETURN then    &apos; Aktionen für Enter-Taste
+  if Sheet1.name=&quot;Buch&quot; then
+    Range=Doc.getCurrentSelection.rangeAddress
+    if Range.startColumn=Range.endColumn and Range.startRow&gt;0 then
+      beleg=Sheet1.getCellByPosition(3,Range.startRow)
+      if Range.startColumn=1 then                     &apos; Dialog öffnen
+        datum=Sheet1.getCellByPosition(0,Range.startRow)
+        jahr=ltrim(str(year(Sheet1.getCellByPosition(0,0).value)))
+        if isdate(left(datum.string,6) &amp; jahr) then 
+          datum.value=datevalue(left(datum.string,6) &amp; jahr)
+          EAR_Dlg = CreateUnoDialog(DialogLibraries.Standard.Dialog1)
+          EAR_Dlg_suchstring=&quot;&quot;
+          EAR_Kontenliste(0)
+          EAR_Dlg.Execute()
+          EAR_Dlg.dispose()
+        else
+          msgbox(&quot;Bitte ein gültiges Datum eingeben!&quot; + chr(13) + &quot;z.B. 1.1.23, mindestens jedoch Zahl Punkt&quot;,,&quot;EAR-OO&quot;)
+          EARUndo
+        endif
+      endif
+      if Range.startColumn=2 then                     &apos; nächste Belegnr + Steuersatz eintragen
+        konto=Sheet1.getCellByPosition(1,Range.startRow)
+        EAR_BelegFill(konto.value,Range.startRow)
+      endif
+      if Range.startColumn=4 then                     &apos; Belegnr. GROSS
+        if beleg.string &lt;&gt; ucase(beleg.string) then beleg.string = ucase(beleg.string)
+      endif
+      if Range.startColumn=7 then                     &apos; Zeile fertig, nächste anwählen+Datum eintragen
+        mycell = Sheet1.getCellByPosition(1,Range.startRow)
+        if mycell.value&gt;0 and mycell.value&lt;1000 and mycell.value&lt;&gt;670 then &apos; ins Anlageverzeichnis eintragen
+          Sheet4 = Doc.Sheets.getByName(&quot;Anlagen&quot;)
+          zeile = Sheet4.getCellRangeByPosition(0,0,0,999).computeFunction(com.sun.star.sheet.GeneralFunction.COUNT)
+          Sheet4.getCellByPosition(0,zeile).string = Sheet1.getCellByPosition(2,Range.startRow).string
+          Sheet4.getCellByPosition(1,zeile).value = mycell.value
+          Sheet4.getCellByPosition(2,zeile).value = Sheet1.getCellByPosition(0,Range.startRow).value
+          Sheet4.getCellByPosition(4,zeile).value = Sheet1.getCellByPosition(7,Range.startRow).value
+          Sheet4.getCellByPosition(5,zeile).value = Sheet1.getCellByPosition(7,Range.startRow).value
+        endif
+        mycell = Sheet1.getCellByPosition(0,Range.startRow+1)
+        myView.Select(mycell) &apos; &lt;- eigentliche Aktion, Rest Workaround
+        oRanges = ThisComponent.createInstance(&quot;com.sun.star.sheet.SheetCellRanges&quot;)
+        myView.Select(oRanges) &apos; Markierung entfernen
+        prevcell=Sheet1.getCellByPosition(0,Range.startRow)
+        if mycell.value&lt;1 then mycell.value = prevcell.value
+      endif
+    else
+      if Range.startColumn=1 and Range.startRow=0 then
+        jahr=year((Sheet1.getCellByPosition(0,0).value))
+        if jahr&lt;1990 or jahr&gt;2060 then
+          msgbox(&quot;Bitte ein gültiges Datum eingeben!&quot; + chr(13) + &quot;z.B. 1.1.23, mindestens jedoch Zahl Punkt&quot;,,&quot;EAR-OO&quot;)
+          EARUndo
+        endif
+      endif
+    endif
+  endif
+endif
+End Function
+
+Sub EARUndo
+oProvider = ThisComponent.CurrentController.Frame
+oDispHelper = CreateUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+oDispHelper.executeDispatch(oProvider,&quot;.uno:Undo&quot;, &quot;&quot;, , Array())
+End Sub
+
+Sub EAR_disposing(oEvent)
+End Sub
+&apos;Sub EAR_selectionChanged(oEvent)
+&apos;buttons_akt()
+&apos;End Sub
+
+Sub EAR_abgang
+doc=thiscomponent
+Sheet1 = Doc.Sheets.getByName(&quot;Buch&quot;)
+Sheet4 = Doc.Sheets.getByName(&quot;Anlagen&quot;)
+Range=Doc.getCurrentSelection.rangeAddress
+if Range.startColumn=Range.endColumn then
+  if Sheet4.getCellByPosition(0,Range.startRow).string&gt;&quot;&quot; or Sheet4.getCellByPosition(8,Range.startRow).value&gt;0 then
+    Sheet4.getCellByPosition(9,Range.startRow).value = year(Sheet1.getCellByPosition(0,0).value)
+    msgbox &quot;Wenn die Anlage verkauft wurde, muß die Einnahme separat gebucht werden. (Konto 4855)&quot;,,&quot;EAR-OO&quot;
+  endif
+endif
+End Sub
+
+sub EAR_Kontenliste(fromStart)
+doc=thiscomponent
+Sheet1 = Doc.Sheets.getByName(&quot;Buch&quot;)
+Sheet2 = Doc.Sheets.getByName(&quot;UStVA&quot;)
+Sheet3 = Doc.Sheets.getByName(&quot;Konten&quot;)
+Ctrl = EAR_Dlg.GetControl(&quot;Konto&quot;)	
+Ctrl.removeItems(0,Ctrl.getItemCount())
+j=0
+i=0
+Do While Sheet3.getCellByPosition(0,i).value&gt;0
+  if Sheet3.getrows().getByIndex(i).isVisible then
+    myCellS=ltrim(str(Sheet3.getCellByPosition(0,i).value)) &amp; &quot; &quot; &amp; str(Sheet3.getCellByPosition(2,i).string)
+    if fromStart=1 then
+      if instr(myCellS,EAR_Dlg_suchstring)=1 then Ctrl.AddItem(myCellS, j)
+    else
+      if instr(myCellS,EAR_Dlg_suchstring) then Ctrl.AddItem(myCellS, j)
+      if left(myCellS,4)=Sheet2.getCellByPosition(2,21).string and EAR_Dlg_suchstring=&quot;&quot; then DefKtoPos = j
+    endif
+    j=j+1
+  endif
+  i=i+1
+Loop
+EAR_Dlg.title = &quot;Kontoauswahl &quot; &amp; EAR_Dlg_suchstring
+Ctrl.selectItemPos(DefKtoPos,True) &apos; Default-Konto in C22
+Ctrl.makeVisible(DefKtoPos)
+Ctrl.setFocus()
+end sub
+
+sub EAR_BelegFill(kontonr,zeile)
+kontonr=val(kontonr)
+doc=thiscomponent
+Sheet1 = Doc.Sheets.getByName(&quot;Buch&quot;)
+konto=Sheet1.getCellByPosition(1,zeile)
+beleg=Sheet1.getCellByPosition(3,zeile)
+steuer=Sheet1.getCellByPosition(5,zeile)
+if kontonr=0 then 
+  beleg.string=&quot;&quot; 
+else
+  if kontonr=2100 or kontonr=1810 then kat=&quot;GT&quot; else
+    if kontonr&lt;4000 or kontonr&gt;=5000 then kat=&quot;ER&quot; else kat=&quot;AR&quot;
+  Sheet2 = Doc.Sheets.getByName(&quot;UStVA&quot;)
+  Sheet3 = Doc.Sheets.getByName(&quot;Konten&quot;)
+  nxt_nr = Sheet2.getCellRangeByName(kat).value
+  if kat&lt;&gt;left(beleg.string,2) then beleg.string=kat + right(&quot;000&quot; &amp; trim(str(nxt_nr)),3) &apos; sonst Doppelzählung
+  oFuncAcc = createunoservice(&quot;com.sun.star.sheet.FunctionAccess&quot;)
+  oRange = Sheet3.getCellRangeByPosition(0, 0, 2, 80)
+  steuer.value=oFuncAcc.callFunction(&quot;VLookup&quot;, array(kontonr,oRange, 2, 0)) &apos;xxx.Formula=&quot;=SVERWEIS(konto.value;Konten.$A$1:$C$80;2;0)&quot;
+endif
+end sub
+
+Sub EAR_Dlg_Event(x)
+Event = x.Source
+Ctrl = EAR_Dlg.GetControl(&quot;Konto&quot;)	
+if instr(x.DBG_Properties,&quot;MouseEvent&quot;) then
+  kto=Ctrl.GetSelectedItem()
+else
+  if x.KeyCode = com.sun.star.awt.Key.RETURN then    &apos; Aktionen für Enter-Taste usw.
+    kto=Ctrl.GetSelectedItem()
+  elseif x.KeyCode = com.sun.star.awt.Key.DELETE then
+    EAR_Dlg_suchstring = &quot;&quot;
+    EAR_Kontenliste(0)
+  elseif x.KeyCode = com.sun.star.awt.Key.BACKSPACE then
+    if len(EAR_Dlg_suchstring) &gt; 0 then EAR_Dlg_suchstring = left(EAR_Dlg_suchstring,len(EAR_Dlg_suchstring)-1)
+    if EAR_Dlg_suchstring = &quot;&quot; then EAR_Kontenliste(0)
+  elseif x.KeyChar &gt;=&quot; &quot; and x.KeyChar&lt;chr(255) then
+    EAR_Dlg_suchstring = EAR_Dlg_suchstring &amp; x.KeyChar
+  else
+    exit sub &apos; andere Tasten - keine Aktion
+  endif
+endif  
+if kto&gt;&quot;&quot; then &apos; bei Enter oder Mausklick Konto/Text ausfüllen + Dialogende
+  doc=thiscomponent
+  Sheet1 = Doc.Sheets.getByName(&quot;Buch&quot;)
+  kto=mid(kto,1,instr(kto,&quot; &quot;))
+  ktotxt=mid(Ctrl.GetSelectedItem(),instr(Ctrl.GetSelectedItem(),&quot; &quot;)+1)    
+  Range=Doc.getCurrentSelection.rangeAddress
+  if Range.startColumn=Range.endColumn then
+    Konto=Sheet1.getCellByPosition(1,Range.startRow)
+    Konto.value=kto
+    Konto=Sheet1.getCellByPosition(2,Range.startRow)
+    Konto.string=ktotxt
+  endif
+  EAR_BelegFill(kto,Range.startRow)
+  kto= Sheet1.getCellByPosition(2,Range.startRow)
+  myView = Doc.CurrentController
+  myView.Select(kto)
+  oRanges = ThisComponent.createInstance(&quot;com.sun.star.sheet.SheetCellRanges&quot;)
+  myView.Select(oRanges) &apos; Markierung entfernen
+  EAR_Dlg.endExecute
+elseif EAR_Dlg_suchstring&gt;&quot;&quot; then
+  doc=thiscomponent
+  EAR_Dlg.title = EAR_Dlg_suchstring
+  if left(EAR_Dlg_suchstring,1)&gt;&quot;0&quot; and left(EAR_Dlg_suchstring,1)&lt;=&quot;9&quot; then 
+    EAR_Kontenliste(1) &apos; nur Kontonummern durchsuchen
+  else
+    EAR_Kontenliste(0) &apos; auch Bezeichnung durchsuchen
+  endif
+endif
+End Sub
+
+</script:module>
