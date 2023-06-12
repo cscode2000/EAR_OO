@@ -45,7 +45,7 @@ Sonstiges:
 - Für den komfortablen Jahreswechsel muß der Dokumentenname das Jahr in dieser Form enthalten: "EAR2023".
 
 Zu guter Letzt:
-Es handelt sich um eine für eigene Zwecke erstellte Anwendung, die nur wenig für Einsatz durch andere modifiziert wurde, daher mit reduziertem Kontenrahmen, ohne Zellschutz, schicke Konfigurationsdialoge o.ä. Gerne helfe ich bei individueller Anpassung.
+- Es handelt sich um eine für eigene Zwecke erstellte Anwendung, die nur wenig für Einsatz durch andere modifiziert wurde, daher mit reduziertem Kontenrahmen, ohne Zellschutz, schicke Konfigurationsdialoge o.ä. Gerne helfe ich bei individueller Anpassung.
 (*) Makros und Dialoge sind zur Vereinfachung im Tabellendokument integriert. Selbst habe ich alles in eine eigene Bibliothek ausgelagert. Zur Kompatibilität mit Open Office 1.x liegt die Datei als ".sxc" vor, was von allen Office-Versionen gelesen werden kann.
 -
 https://github.com/cscode2000/EAR_OO
