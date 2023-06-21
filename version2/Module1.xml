@@ -260,13 +260,14 @@ if not fileexists(url) or ans=6 then  &apos; neues Jahr anlegen
   Ziel = Sheet5.getCellRangeByPosition(5,1,5,zeilenAV)
   Ziel.setDataArray( Quelle.getDataArray() )
 
-  Quelle=Sheet5.getCellRangeByPosition(6,199,7,199)
-  Do While zeilenAV&gt;0       &apos;  jährl. Abschreibung auf Standard
-    Ziel = Sheet5.getCellRangeByPosition(6,zeilenAV,7,zeilenAV)
-    Ziel.setDataArray( Quelle.getDataArray() )
-    zeilenAV = zeilenAV-1
-  loop
-  
+  QuelleRange = Sheet5.getCellRangeByName( &quot;G199:H199&quot; )
+  Quelle = QuelleRange.getRangeAddress
+  for zeile = 2 to zeilenAV    &apos;  jährl. Abschreibung auf Standard
+    ZielRange = Sheet5.getCellRangeByName(&quot;G&quot; + trim(str(zeile)))
+    Ziel = ZielRange.getCellAddress
+    Sheet5.copyRange(Ziel,Quelle)
+  next
+
   if DocVj_aktiv&lt;&gt;1 then 
     DocVj.Modified = False
     DocVj.close(true)
