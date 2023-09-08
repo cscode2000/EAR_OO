@@ -1,0 +1,5 @@
+# https://git-scm.com/docs/gitignore
+.git*           export-ignore
+/Dialogs        export-ignore
+*.xml           export-ignore
+*.txt           export-ignore
