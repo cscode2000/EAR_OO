@@ -29,16 +29,19 @@ Sheet1 = Doc.Sheets.getByName(&quot;UStVA&quot;)
 Jahr = Sheet1.getCellRangeByName(&quot;A1&quot;)
 Zelle=Doc.getCurrentSelection()
 Def_MeinName=&quot;Mein Name&quot;
-Def_MeinIBAN=&quot;DE0815&quot;
-Def_MeinBIC=&quot;BICXXX&quot;
+Def_MeinIBAN=&quot;DE0815000000000000&quot;
+Def_MeinBIC=&quot;BICXXXYYY&quot;
 Def_Steuernr=&quot; 123456789&quot;
 Def_SteuernrElster=&quot;0987654321&quot;
 Def_FA_Name=&quot;Finanzamt xy&quot;
-Def_FA_IBAN=&quot;DE1508&quot;
-Def_FA_BIC=&quot;BICYYY&quot;
+Def_FA_IBAN=&quot;DE1508000000000000&quot;
+Def_FA_BIC=&quot;BICXXXZZZ&quot;
+Def_ElsterDir=&quot;C:\Elster\&quot;
+Def_HBCIDir=&quot;C:\HBCI\&quot;
 if (Zelle.rangeAddress.startRow &lt; Zelle.rangeAddress.EndRow) then msgboxtext = &quot; und folgende&quot;
 weiter = MsgBox (&quot;Die Daten für Monat &quot; + Zelle.rangeAddress.startRow + msgboxtext + &quot; werden exportiert und der&quot; + chr(13) + &quot;angemeldete Betrag in Spalte J (Dezember: L) eingetragen.&quot; + chr(13) +_
 &quot;Daraus wird die Sondervorauszahlung für das nächste Jahr sowie das Vorauszahlungssoll für die USt.-Erkl. berechnet.&quot;,1,&quot;UStVA Export für Elster.de + SEPA&quot;)
+msgboxtext=&quot;&quot;
 if weiter=1 then
   For i = Zelle.rangeAddress.startRow to Zelle.rangeAddress.EndRow
     Monat = trim(str(i))
@@ -54,9 +57,9 @@ if weiter=1 then
     anzumelden = Sheet1.getCellRangeByName(&quot;I&quot; + trim(str(1+Monat))).value
     angemeldet = Sheet1.getCellRangeByName(&quot;J&quot; + trim(str(1+Monat)))
     tmpFile = Freefile
-    Open &quot;C:\Elster\!ustva&quot; + monat + &quot;.xml&quot; For Output As tmpFile
+    Open Def_ElsterDir + &quot;!ustva&quot; + monat + &quot;.xml&quot; For Output As tmpFile
     Print #tmpFile, &quot;&lt;?xml version=&quot; + Chr(34) + &quot;1.0&quot;  + Chr(34) + &quot; encoding=&quot;  + Chr(34) + &quot;ISO-8859-15&quot; + Chr(34) + &quot; standalone=&quot; + Chr(34) + &quot;no&quot; + Chr(34) + &quot;?&gt;&quot; +_
-    &quot;&lt;Anmeldungssteuern xmlns=&quot; + Chr(34) + &quot;http://www.elster.de/2002/XMLSchema&quot; + Chr(34) + &quot; art=&quot; + Chr(34) + &quot;UStVA&quot; + Chr(34) + &quot; version=&quot; + Chr(34) + &quot;201901&quot; +_
+    &quot;&lt;Anmeldungssteuern xmlns=&quot; + Chr(34) + &quot;http://www.elster.de/2002/XMLSchema&quot; + Chr(34) + &quot; art=&quot; + Chr(34) + &quot;UStVA&quot; + Chr(34) + &quot; version=&quot; + Chr(34) + Jahr.string +_
     Chr(34) + &quot;&gt;&quot;
     Print #tmpFile, &quot;&lt;Steuerfall&gt;&lt;Umsatzsteuervoranmeldung&gt;&lt;Steuernummer&gt;&quot; + Def_SteuernrElster + &quot;&lt;/Steuernummer&gt;&lt;Jahr&gt;&quot; + Jahr.string + &quot;&lt;/Jahr&gt;&quot;
     Print #tmpFile,&quot;&lt;Zeitraum&gt;&quot; + Monat + &quot;&lt;/Zeitraum&gt;&lt;Kz66&gt;&quot; + Vorsteuer_str + &quot;&lt;/Kz66&gt;&quot;
@@ -79,7 +82,7 @@ if weiter=1 then
     Print #tmpFile,&quot;&lt;/Umsatzsteuervoranmeldung&gt;&lt;/Steuerfall&gt;&lt;/Anmeldungssteuern&gt;&quot;
     Close #tmpFile
 
-    anzumelden_str = Format(anzumelden, &quot;0.00&quot;) &apos; leider Dezimal-Komma wg. dt. Gebietsschema
+    anzumelden_str = Format(anzumelden, &quot;0.00&quot;) &apos; Dezimal-Komma wg. dt. Gebietsschema
     Mid(anzumelden_str, len(anzumelden_str)-2, 1, &quot;.&quot;)
     faellig_j = Jahr.string
     faellig_m = 2+Monat
@@ -88,31 +91,38 @@ if weiter=1 then
       faellig_j = 1+faellig_j
     end if
     if faellig_m&lt;10 then faellig_m = &quot;0&quot; + faellig_m  &apos; Integer &lt;-&gt; String???
-    SEPAtext = SEPAtext + &quot;&lt;PmtInf&gt;&lt;ReqdColltnDt&gt;&quot; + faellig_j + &quot;-&quot; + faellig_m + &quot;-01&lt;/ReqdColltnDt&gt;&quot; +_
-    &quot;&lt;DbtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + Def_MeinIBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/DbtrAcct&gt;&lt;DbtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + Def_MeinBIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/DbtrAgt&gt;&lt;CdtTrfTxInf&gt;&quot; +_
-    &quot;&lt;Amt&gt;&lt;InstdAmt Ccy=&quot; + Chr(34) + &quot;EUR&quot; + Chr(34) + &quot;&gt;&quot; + anzumelden_str + &quot;&lt;/InstdAmt&gt;&quot; +_
-    &quot;&lt;/Amt&gt;&lt;CdtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + FA_BIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/CdtrAgt&gt;&lt;Cdtr&gt;&lt;Nm&gt;&quot; + FA_Name + &quot;&lt;/Nm&gt;&lt;/Cdtr&gt;&lt;CdtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + FA_IBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/CdtrAcct&gt;&lt;RmtInf&gt;&quot; +_
-    &quot;&lt;Ustrd&gt;UST.&quot; + Monat + &quot;/&quot; + Jahr.string + Def_Steuernr + &quot;&lt;/Ustrd&gt;&lt;/RmtInf&gt;&lt;/CdtTrfTxInf&gt;&lt;/PmtInf&gt;&quot;
-    if monat=&quot;12&quot; then &apos; SoVZ-Überweisung
-      anzumelden = Sheet1.getCellRangeByName(&quot;I25&quot;).value
+    &apos; ReqdColltnDt / IntrBkSttlmDt, ReqdExctnDt = Terminüberweisung
+    if anzumelden&gt;0 then
+      SEPAtext = SEPAtext + &quot;&lt;PmtInf&gt;&lt;ReqdColltnDt&gt;&quot; + faellig_j + &quot;-&quot; + faellig_m + &quot;-01&lt;/ReqdColltnDt&gt;&quot; +_
+      &quot;&lt;DbtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + Def_MeinIBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/DbtrAcct&gt;&lt;DbtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + Def_MeinBIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/DbtrAgt&gt;&lt;CdtTrfTxInf&gt;&quot; +_
+      &quot;&lt;Amt&gt;&lt;InstdAmt Ccy=&quot; + Chr(34) + &quot;EUR&quot; + Chr(34) + &quot;&gt;&quot; + anzumelden_str + &quot;&lt;/InstdAmt&gt;&quot; +_
+      &quot;&lt;/Amt&gt;&lt;CdtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + Def_FA_BIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/CdtrAgt&gt;&lt;Cdtr&gt;&lt;Nm&gt;&quot; + Def_FA_Name + &quot;&lt;/Nm&gt;&lt;/Cdtr&gt;&lt;CdtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + Def_FA_IBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/CdtrAcct&gt;&lt;RmtInf&gt;&quot; +_
+      &quot;&lt;Ustrd&gt;UST.&quot; + Monat + &quot;/&quot; + Jahr.string + Def_Steuernr + &quot;&lt;/Ustrd&gt;&lt;/RmtInf&gt;&lt;/CdtTrfTxInf&gt;&lt;/PmtInf&gt;&quot;
+    else
+      msgboxtext=msgboxtext + &quot;Für Monat &quot; + Zelle.rangeAddress.startRow + &quot; wird keine Überweisung erstellt, da der Betrag negativ ist.&quot; + chr(13) + chr(13)
+    end if
+    anzumelden = Sheet1.getCellRangeByName(&quot;I25&quot;).value
+    if monat=&quot;12&quot; and anzumelden&gt;0 then &apos; SoVZ-Überweisung
       anzumelden_str = Format(anzumelden, &quot;0.00&quot;)
       Mid(anzumelden_str, len(anzumelden_str)-2, 1, &quot;.&quot;)
       SEPAtext = SEPAtext + &quot;&lt;PmtInf&gt;&lt;ReqdExctnDt&gt;&quot; + faellig_j + &quot;-02-01&lt;/ReqdExctnDt&gt;&quot; +_
       &quot;&lt;DbtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + Def_MeinIBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/DbtrAcct&gt;&lt;DbtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + Def_MeinBIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/DbtrAgt&gt;&lt;CdtTrfTxInf&gt;&quot; +_
       &quot;&lt;Amt&gt;&lt;InstdAmt Ccy=&quot; + Chr(34) + &quot;EUR&quot; + Chr(34) + &quot;&gt;&quot; + anzumelden_str + &quot;&lt;/InstdAmt&gt;&quot; +_
-      &quot;&lt;/Amt&gt;&lt;CdtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + FA_BIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/CdtrAgt&gt;&lt;Cdtr&gt;&lt;Nm&gt;&quot; + FA_Name + &quot;&lt;/Nm&gt;&lt;/Cdtr&gt;&lt;CdtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + FA_IBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/CdtrAcct&gt;&lt;RmtInf&gt;&quot; +_
+      &quot;&lt;/Amt&gt;&lt;CdtrAgt&gt;&lt;FinInstnId&gt;&lt;BIC&gt;&quot; + Def_FA_BIC + &quot;&lt;/BIC&gt;&lt;/FinInstnId&gt;&lt;/CdtrAgt&gt;&lt;Cdtr&gt;&lt;Nm&gt;&quot; + Def_FA_Name + &quot;&lt;/Nm&gt;&lt;/Cdtr&gt;&lt;CdtrAcct&gt;&lt;Id&gt;&lt;IBAN&gt;&quot; + Def_FA_IBAN + &quot;&lt;/IBAN&gt;&lt;/Id&gt;&lt;/CdtrAcct&gt;&lt;RmtInf&gt;&quot; +_
       &quot;&lt;Ustrd&gt;UST. SoVZ &quot; + faellig_j + Def_Steuernr + &quot;&lt;/Ustrd&gt;&lt;/RmtInf&gt;&lt;/CdtTrfTxInf&gt;&lt;/PmtInf&gt;&quot;
+      msgboxtext=msgboxtext + &quot;Die Sonder-Vorauszahlung für &quot; + faellig_j + &quot; wurde erstellt. Sie ist Anfang Februar fällig.&quot; + chr(13) + chr(13)
     end if
   next i
   tmpFile = Freefile
-  Open &quot;C:\HBCI\import_&quot; + monat + &quot;.xml&quot; For Output As tmpFile
+  Open Def_HBCIDir + &quot;import_&quot; + monat + &quot;.xml&quot; For Output As tmpFile
   Print #tmpFile, &quot;&lt;Document xmlns=&quot; + Chr(34) + &quot;urn:iso:std:iso:20022:tech:xsd:pain.001.001.03&quot; + Chr(34) + &quot;&gt;&lt;CstmrCdtTrfInitn&gt;&lt;GrpHdr&gt;&lt;InitgPty&gt;&lt;Nm&gt;&quot; + Def_MeinName + &quot;&lt;/Nm&gt;&lt;/InitgPty&gt;&lt;/GrpHdr&gt;&quot; + SEPAtext + &quot;&lt;/CstmrCdtTrfInitn&gt;&lt;/Document&gt;&quot;
   Close #tmpFile
-  if (Zelle.rangeAddress.startRow &lt; Zelle.rangeAddress.EndRow) then msgboxtext = &quot;bis&quot; else msgboxtext = &quot;für&quot;
-  if fileexists(&quot;C:\Elster\!ustva&quot; + monat + &quot;.xml&quot;) then
-    MsgBox (&quot;UStVA-Daten &quot; + msgboxtext + &quot; Monat &quot; + Monat + &quot; wurden exportiert.&quot; + Chr(13) + Chr(13) + &quot;Nach Absenden in &apos;Mein Elster&apos; PDF speichern.&quot;,0,&quot;Export für Elster.de&quot;)
+  msgboxtext = msgboxtext + &quot;UStVA-Daten &quot;
+  if (Zelle.rangeAddress.startRow &lt; Zelle.rangeAddress.EndRow) then msgboxtext = msgboxtext + &quot;bis&quot; else msgboxtext = msgboxtext + &quot;für&quot;
+  if fileexists(Def_ElsterDir + &quot;!ustva&quot; + monat + &quot;.xml&quot;) then
+    MsgBox (msgboxtext + &quot; Monat &quot; + Monat + &quot; wurden exportiert.&quot; + Chr(13) + Chr(13) + &quot;Nach Absenden in &apos;Mein Elster&apos; PDF speichern.&quot;,0,&quot;Export für Elster.de&quot;)
   else
-    MsgBox (&quot;UStVA-Daten &quot; + msgboxtext + &quot; Monat &quot; + Monat + &quot; wurden NICHT exportiert.&quot;,16,&quot;Fehler&quot;)
+    MsgBox (msgboxtext + &quot; Monat &quot; + Monat + &quot; wurden NICHT exportiert.&quot;,16,&quot;Fehler&quot;)
   end if
 end if
 end sub
@@ -177,14 +187,17 @@ Doc= thisComponent
 Sheet1 = Doc.Sheets.getByName(&quot;Buch&quot;)
 &apos;Jahr = Sheet1.getCellRangeByName(&quot;A1&quot;).value+1
 Jahr = right(str(val(Sheet1.getCellRangeByName(&quot;A1&quot;).string)+1),4)
-i=2
-while instr(i,Doc.getUrl(),&quot;.&quot;)&gt;2
-  i=i+1
-wend
-EAR_Ext = &quot;.&quot; &amp; mid(Doc.getUrl(),i) &apos; Endung sxc oder ods
-EAR_OpenYearOrCreate(Jahr,0)
-EAR_Doc.store()
-msgbox(&quot;Jahreswechsel fertig.&quot;,,&quot;EAR-OO&quot;)
+ans=msgbox(&quot;Es wird eine neue Datei für &quot; &amp; jahr &amp; &quot; im Verzeichnis &quot; &amp; createunoservice(&quot;com.sun.star.util.PathSettings&quot;).work &amp; &quot; angelegt und die Anlagegüter übernommen.&quot; &amp; chr(13) &amp; &quot;Nach Fertigstellung wird ein Hinweis angezeigt.&quot; &amp; chr(13) &amp; &quot;Fortfahren?&quot;,4,&quot;EAR_OO&quot;)
+if ans=6 then
+  i=2
+  while instr(i,Doc.getUrl(),&quot;.&quot;)&gt;2
+    i=i+1
+  wend
+  EAR_Ext = &quot;.&quot; &amp; mid(Doc.getUrl(),i) &apos; Endung sxc oder ods
+  EAR_OpenYearOrCreate(Jahr,0)
+  EAR_Doc.store()
+  msgbox(&quot;Jahreswechsel fertig.&quot;,,&quot;EAR-OO&quot;)
+endif
 end sub
 
 sub EAR_OpenYearOrCreate(Jahr,zeilen)
